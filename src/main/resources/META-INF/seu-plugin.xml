@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<seuServerPlugin  xmlns="http://seu.sourceforge.net/schema/serverplugin" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://seu.sourceforge.net/schema/ServerPlugin.xsd" >
+	<name>Test plugin</name>
+	<version>${pom.version}</version>
+	<agent>
+		<name>Test</name>
+		<javaClass>es.caib.seycon.agent.TestAgent</javaClass>
+		<userInterface>TestAgent.zul</userInterface>
+		<enableAccessControl>N</enableAccessControl>
+	</agent>	
+	<agent>
+		<name>CSV file test agent</name>
+		<javaClass>es.caib.seycon.agent.CSVAgent</javaClass>
+		<userInterface>CsvAgent.zul</userInterface>
+		<enableAccessControl>N</enableAccessControl>
+		<authoritativeSource>true</authoritativeSource>
+	</agent>	
+	<agent>
+		<name>Dummy password agent</name>
+		<javaClass>com.soffid.iam.sync.agent.DummyPasswordAgent</javaClass>
+		<userInterface>DummyPasswordAgent.zul</userInterface>
+		<enableAccessControl>N</enableAccessControl>
+		<authoritativeSource>false</authoritativeSource>
+	</agent>	
+	<agent>
+		<name>Customizable test agent</name>
+		<javaClass>com.soffid.iam.sync.agent.CSVAgent</javaClass>
+		<userInterface>CustomCsvAgent.zul</userInterface>
+		<authoritativeSource>true</authoritativeSource>
+		<enableAccessControl>false</enableAccessControl>
+		<enableAttributeMapping>true</enableAttributeMapping>
+
+		<object systemObject="USERS" soffidObject="user">
+			<property name="key" value="userName"/>
+			<property name="file" value="/tmp/users.csv"/>
+			<mapping soffidAttribute='accountName' systemAttribute='accountName'
+				direction="inout" />
+			<mapping soffidAttribute='userName' systemAttribute='userName'
+				direction="inout" />
+			<mapping soffidAttribute='firstName' systemAttribute='firstName'
+				direction="inount" />
+			<mapping soffidAttribute='lastName' systemAttribute='lastName'
+				direction="inout" />
+			<mapping
+				soffidAttribute='shortName==null || shortName.length() == 0? attributes{"EMAIL"} : shortName+"@"+mailDomain'
+				systemAttribute='EMAIL' direction="out" />
+			<mapping soffidAttribute='primaryGroup' systemAttribute='group'
+				direction="inout" />
+		</object>
+
+	</agent>
+</seuServerPlugin>

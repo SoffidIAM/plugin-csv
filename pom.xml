@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<parent>
+		<artifactId>plugins</artifactId>
+		<groupId>com.soffid.iam.sync</groupId>
+		<version>1.0.1</version>
+	</parent>
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.soffid.iam.sync.plugins</groupId>
+	<artifactId>csv-plugin</artifactId>
+	<packaging>jar</packaging>
+	<name>CSV plugin</name>
+	<version>1.1.0</version>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>1.2</version>
+				<executions>
+					<execution>
+						<id>afefeixdeps</id>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<artifactSet>
+								<includes>
+									<include>net.sf.opencsv:opencsv</include>
+								</includes>
+							</artifactSet>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+	<dependencies>
+
+		<dependency>
+			<groupId>net.sf.opencsv</groupId>
+			<artifactId>opencsv</artifactId>
+			<version>2.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.soffid.iam.console</groupId>
+			<artifactId>iam-common</artifactId>
+			<version>1.6.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.soffid.iam.sync</groupId>
+			<artifactId>syncserver</artifactId>
+			<version>1.6.0</version>
+		</dependency>
+	</dependencies>
+	<properties>
+		<maven.compile.source>5</maven.compile.source>
+		<maven.compile.target>5</maven.compile.target>
+	</properties>
+</project>
