@@ -26,7 +26,7 @@
 		<authoritativeSource>false</authoritativeSource>
 	</agent>	
 	<agent>
-		<name>Customizable test agent</name>
+		<name>Customizable CSV file</name>
 		<javaClass>com.soffid.iam.sync.agent.CSVAgent</javaClass>
 		<userInterface>CustomCsvAgent.zul</userInterface>
 		<authoritativeSource>true</authoritativeSource>
@@ -49,6 +49,35 @@
 				systemAttribute='EMAIL' direction="out" />
 			<mapping soffidAttribute='primaryGroup' systemAttribute='group'
 				direction="inout" />
+		</object>
+
+	</agent>
+	<agent>
+		<name>Customizable fixed-columns file</name>
+		<javaClass>com.soffid.iam.sync.agent.ColumnsAgent</javaClass>
+		<userInterface>ColumnsAgent.zul</userInterface>
+		<authoritativeSource>true</authoritativeSource>
+		<enableAccessControl>false</enableAccessControl>
+		<enableAttributeMapping>true</enableAttributeMapping>
+
+		<object systemObject="USERS" soffidObject="user">
+			<property name="recordSize" value="44"/>
+			<property name="file" value="/tmp/users.txt"/>
+			<property name="1-10" value="USER"/>
+			<property name="11-25" value="FIRSTNAME"/>
+			<property name="26-40" value="LASTNAME"/>
+			<property name="41-51" value="GROUPNAME"/>
+			<property name="52-54" value="ACTIVE"/>
+			<mapping soffidAttribute='userName' systemAttribute='USER'
+				direction="in" />
+			<mapping soffidAttribute='firstName' systemAttribute='FIRSTNAME'
+				direction="in" />
+			<mapping soffidAttribute='lastName' systemAttribute='LASTNAME'
+				direction="in" />
+			<mapping soffidAttribute='primaryGroup' systemAttribute='GROUPNAME'
+				direction="in" />
+			<mapping soffidAttribute='active' systemAttribute='ACTIVE.equals("YES")'
+				direction="in" />
 		</object>
 
 	</agent>

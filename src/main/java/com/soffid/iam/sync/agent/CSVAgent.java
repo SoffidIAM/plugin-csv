@@ -2,7 +2,9 @@ package com.soffid.iam.sync.agent;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
+import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -113,25 +115,7 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 				CSVFile prop = CSVFile.load(key, file);
 				for (String account: prop.getAccounts())
 				{
-					Map<String, Object> identity = prop.getUserData(account);
-					ExtensibleObject eo = new ExtensibleObject();
-					eo.setObjectType(eom.getSystemObject());
-					eo.putAll(identity);
-					if (debugEnabled)
-					{
-						debugObject("Got raw identity", eo, "   ");
-					}
-					ExtensibleObject input = objectTranslator.parseInputObject(eo, eom);
-					if (input != null)
-					{
-						if (debugEnabled)
-						{
-							debugObject("Got soffid identity", eo, "   ");
-						}
-						AuthoritativeChange change = vom.parseAuthoritativeChange(input);
-						if (change != null)
-							changes.add(change);
-					}
+					readAuthoritativeChange(changes, vom, eom, prop, account);
 				}
 			}
 		}
@@ -143,45 +127,106 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 			{
 				String key = eom.getProperties().get("key");
 				String file = eom.getProperties().get("file");
+				String backup = eom.getProperties().get("backup");
 				
 				if (debugEnabled)
 				{
 					log.info("Getting authoritative users");
 				}
 				CSVFile prop = CSVFile.load(key, file);
+				CSVFile backProp;
+				if ("true".equals(backup))
+					backProp = CSVFile.load(key, file+"-last");
+				else
+					backProp = new CSVFile ();
 				for (String account: prop.getAccounts())
 				{
-					Map<String, Object> identity = prop.getUserData(account);
-					ExtensibleObject eo = new ExtensibleObject();
-					eo.setObjectType(eom.getSystemObject());
-					eo.putAll(identity);
-					if (debugEnabled)
+					readUser(changes, vom, eom, prop, backProp, account);
+				}
+				for (String account: backProp.getAccounts())
+				{
+					AuthoritativeChange ch = readUser(changes, vom, eom, backProp, null, account);
+					if (ch != null)
 					{
-						debugObject("Got raw identity", eo, "   ");
+						ch.getUser().setActiu(false);
 					}
-					ExtensibleObject input = objectTranslator.parseInputObject(eo, eom);
-					if (input != null)
-					{
-						if (debugEnabled)
-						{
-							debugObject("Got soffid identity", eo, "   ");
-						}
-						Usuari usuari = vom.parseUsuari(input);
-						if (usuari != null)
-						{
-							AuthoritativeChange ch = new AuthoritativeChange();
-							ch.setId(new AuthoritativeChangeIdentifier());
-							ch.getId().setChangeId(usuari.getCodi());
-							ch.setUser(usuari);
-							Map<String,Object> attributes = (Map<String, Object>) input.getAttribute("attributes");
-							ch.setAttributes(attributes);
-							changes.add(ch);
-						}
+				}
+				if ("true".equals(backup))
+				{
+					try {
+						prop.save(file+"-last");
+						prop.save(file+"-"+new SimpleDateFormat("yyyy-MM-dd-HH:MM").format(new Date()));
+					} catch (IOException e) {
+						throw new InternalErrorException("Error storing backup file ", e);
 					}
 				}
 			}
 		}
 		return changes;
+	}
+
+	private AuthoritativeChange readUser(List<AuthoritativeChange> changes,
+			ValueObjectMapper vom, ExtensibleObjectMapping eom, CSVFile prop,
+			CSVFile backProp, String account) throws InternalErrorException {
+		Map<String, Object> identity = prop.getUserData(account);
+		
+		if (backProp != null)
+			backProp.remove(account);
+		
+		ExtensibleObject eo = new ExtensibleObject();
+		eo.setObjectType(eom.getSystemObject());
+		eo.putAll(identity);
+		if (debugEnabled)
+		{
+			debugObject("Got raw identity", eo, "   ");
+		}
+		ExtensibleObject input = objectTranslator.parseInputObject(eo, eom);
+		if (input != null)
+		{
+			if (debugEnabled)
+			{
+				debugObject("Got soffid identity", eo, "   ");
+			}
+			Usuari usuari = vom.parseUsuari(input);
+			if (usuari != null)
+			{
+				AuthoritativeChange ch = new AuthoritativeChange();
+				ch.setId(new AuthoritativeChangeIdentifier());
+				ch.getId().setChangeId(usuari.getCodi());
+				ch.setUser(usuari);
+				Map<String,Object> attributes = (Map<String, Object>) input.getAttribute("attributes");
+				ch.setAttributes(attributes);
+				changes.add(ch);
+				return ch;
+			}
+		}
+		return null;
+	}
+
+	private AuthoritativeChange readAuthoritativeChange(List<AuthoritativeChange> changes,
+			ValueObjectMapper vom, ExtensibleObjectMapping eom, CSVFile prop,
+			String account) throws InternalErrorException {
+		Map<String, Object> identity = prop.getUserData(account);
+		ExtensibleObject eo = new ExtensibleObject();
+		eo.setObjectType(eom.getSystemObject());
+		eo.putAll(identity);
+		if (debugEnabled)
+		{
+			debugObject("Got raw identity", eo, "   ");
+		}
+		ExtensibleObject input = objectTranslator.parseInputObject(eo, eom);
+		if (input != null)
+		{
+			if (debugEnabled)
+			{
+				debugObject("Got soffid identity", eo, "   ");
+			}
+			AuthoritativeChange change = vom.parseAuthoritativeChange(input);
+			if (change != null)
+				changes.add(change);
+			return change;
+		}
+		return null;
 	}
 
 	public void commitChange(AuthoritativeChangeIdentifier id)

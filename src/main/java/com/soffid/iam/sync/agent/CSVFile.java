@@ -21,6 +21,8 @@ public class CSVFile {
 	public Map<String,Map<String, Object>> props;
 
 	public CSVFile() {
+		props = new HashMap<String,Map<String,Object>>();
+		columns = new String[0];
 	}
 
 	public static CSVFile load (String key, String fileName) throws InternalErrorException
