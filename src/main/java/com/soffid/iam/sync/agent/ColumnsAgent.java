@@ -11,6 +11,7 @@ import java.rmi.RemoteException;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -44,7 +45,7 @@ import es.caib.seycon.util.Base64.InputStream;
 public class ColumnsAgent extends Agent implements AuthoritativeIdentitySource2, ExtensibleObjectMgr {
 	boolean debugEnabled = true;
 	ObjectTranslator objectTranslator = null;
-	private Collection<ExtensibleObjectMapping> objectMappings;
+	protected Collection<ExtensibleObjectMapping> objectMappings;
 	private String encoding;
 	private ValueObjectMapper vom;
 
@@ -67,7 +68,23 @@ public class ColumnsAgent extends Agent implements AuthoritativeIdentitySource2,
 
 	}
 
-	private AuthoritativeChange readUser(ExtensibleObjectMapping eom, int rowNumber, byte[] line) throws InternalErrorException {
+	protected ExtensibleObject readLine(ExtensibleObjectMapping eom, long l, byte[] line) throws InternalErrorException {
+		ExtensibleObject eo = readNativeObject(eom, l, line);
+		
+		ExtensibleObject input = objectTranslator.parseInputObject(eo, eom);
+		if (input != null)
+		{
+			if (debugEnabled)
+			{
+				debugObject("Got soffid identity", input, "   ");
+			}
+			return input;
+		}
+		return null;
+	}
+
+	protected ExtensibleObject readNativeObject(ExtensibleObjectMapping eom, long l, byte[] line)
+			throws InternalErrorException {
 		ExtensibleObject eo = new ExtensibleObject();
 		eo.setObjectType(eom.getSystemObject());
 
@@ -89,7 +106,7 @@ public class ColumnsAgent extends Agent implements AuthoritativeIdentitySource2,
 				String value;
 				try {
 					if (to > line.length)
-						throw new InternalErrorException("Error reading line "+rowNumber+": missing column "+column);
+						throw new InternalErrorException("Error reading line "+l+": missing column "+column);
 					value = new String (line, from - 1, to - from + 1, encoding).trim();
 				} catch (UnsupportedEncodingException e) {
 					throw new InternalErrorException("Error decoding from charset "+encoding);
@@ -102,39 +119,7 @@ public class ColumnsAgent extends Agent implements AuthoritativeIdentitySource2,
 		{
 			debugObject("Got raw identity", eo, "   ");
 		}
-		
-		ExtensibleObject input = objectTranslator.parseInputObject(eo, eom);
-		if (input != null)
-		{
-			if (debugEnabled)
-			{
-				debugObject("Got soffid identity", input, "   ");
-			}
-			Usuari usuari = vom.parseUsuari(input);
-			if (usuari != null)
-			{
-				AuthoritativeChange ch = new AuthoritativeChange();
-				ch.setId(new AuthoritativeChangeIdentifier());
-				ch.getId().setChangeId(usuari.getCodi());
-				ch.setUser(usuari);
-				Map<String,Object> attributes = (Map<String, Object>) input.getAttribute("attributes");
-				ch.setAttributes(attributes);
-				List<Map<String,Object>> groups = (List<Map<String, Object>>) input.getAttribute("secondaryGroups");
-				if (groups != null)
-				{
-					LinkedList<String> gr2 = new LinkedList<String>();
-					for (Map<String, Object> grMap: groups)
-					{
-						String name = (String) grMap.get("name");
-						if (name != null)
-							gr2.add (name);
-					}
-					ch.setGroups(new HashSet<String>(gr2));
-				}
-				return ch;
-			}
-		}
-		return null;
+		return eo;
 	}
 
 	void debugObject(String msg, Map<String, Object> obj, String indent) {
@@ -160,8 +145,8 @@ public class ColumnsAgent extends Agent implements AuthoritativeIdentitySource2,
 		}
 	}
 
-	int lastRow = 0;
-	long loadingFile;
+	Map<String, Long> lastRows = new HashMap<String,Long>();
+	Map<String, Long> loadingFiles = new HashMap<String, Long>();
 	boolean eof = false;
 	boolean end = false;
 	HashSet<String> loadedUsers = new HashSet<String>();
@@ -177,104 +162,83 @@ public class ColumnsAgent extends Agent implements AuthoritativeIdentitySource2,
 				if (eom.getSoffidObject().equals (SoffidObjectType.OBJECT_USER) || 
 						eom.getSoffidObject().equals (SoffidObjectType.OBJECT_AUTHORITATIVE_CHANGE))
 				{
-					String file = eom.getProperties().get("file");
-					if (file == null)
-						throw new InternalErrorException("Missing file property for "+eom.getSystemObject()+" object type");
-					String rs = eom.getProperties().get("recordSize");
-					if (rs == null)
-						throw new InternalErrorException("Missing file property for "+eom.getSystemObject()+" object type");
-					int recordSize = Integer.parseInt(rs);
-					
-					File f = new File (file);
-					
-					if (loadingFile == 0)
-						loadingFile = f.lastModified();
-					if (loadingFile != f.lastModified())
-						throw new InternalErrorException("File "+file+" has been modified during load process");
-					long lastCommitedChange = lastChange == null ? 0 : Long.decode(lastChange);
-					// Test if this file has already been loaded
-					if (lastCommitedChange >= f.lastModified())
-					{
-						return null;
-					}
-						
-					byte [] row = new byte [recordSize];
-					if ( !eof )
-					{
-						FileInputStream input = new FileInputStream(f);
-						for (int i = 0; i < lastRow; i++)
-						{
-							input.read(row);
-						}
-						while (changes.size() < 100)
-						{
-							if (input.read(row) < 0)
-							{
-								eof = true;
-								lastRow = 0;
-								break;
-							} else {
-								AuthoritativeChange ch = readUser(eom, lastRow+1, row);
-								if (ch != null && ch.getUser() != null)
-								{
-									changes.add(ch);
-									if (ch.getUser().getCodi() != null)
-									{
-										loadedUsers.add (ch.getUser().getCodi());
-									}
-								}
-								lastRow ++;
-							}
-						}
-						input.close();
-					}
-					
-					if (eof && !end  && changes.size() < 100) {
-						File back = new File ( file+"."+lastChange );
-						if (back.canRead())
-						{
-							FileInputStream input = new FileInputStream(back);
-							// Skip already loaded rows
-							for (int i = 0; i < lastRow; i++)
-							{
-								input.read(row);
-							}
-							// Now, read up to 100 rowso
-							while (changes.size() < 100)
-							{
-								if (input.read(row) < 0)
-								{
-									end = true;
-									break;
-								} else {
-									AuthoritativeChange ch = readUser(eom, lastRow + 1, row);
-									if (ch != null && ch.getUser() != null &&
-										ch.getUser().getCodi() != null && 
-										! loadedUsers.contains(ch.getUser().getCodi()))
-									{
-										ch.getUser().setActiu(false);
-										changes.add(ch);
-									}
-									lastRow ++;
-								}
-							}
-							input.close();
-						}
-						else
-							end = true;
-						
-						if (end)
-						{
-							copyFile (f, new File ( file+"."+loadingFile));
-							copyFile (f, new File ( file+".latest"));
-						}
-					}
-					return changes;
+					readChanges(lastChange, eom, changes);
 				}
 			}
 			return null;
 		} catch ( IOException e) {
 			throw new InternalErrorException("Input/output error.", e);
+		}
+	}
+
+	protected void readChanges(String lastChange, ExtensibleObjectMapping eom,
+			List<AuthoritativeChange> changes) throws InternalErrorException, FileNotFoundException, IOException {
+		String file = eom.getProperties().get("file");
+		if (file == null)
+			throw new InternalErrorException("Missing file property for "+eom.getSystemObject()+" object type");
+		String rs = eom.getProperties().get("recordSize");
+		if (rs == null)
+			throw new InternalErrorException("Missing file property for "+eom.getSystemObject()+" object type");
+		int recordSize = Integer.parseInt(rs);
+		
+		File f = new File (file);
+		
+		Long lf = loadingFiles.get(file);
+		if (lf == null)
+		{
+			lf = f.lastModified();
+			loadingFiles.put(file, lf);
+		}
+		if (lf.longValue() != f.lastModified())
+			throw new InternalErrorException("File "+file+" has been modified during load process");
+		long lastCommitedChange = lastChange == null ? 0 : Long.decode(lastChange);
+		// Test if this file has already been loaded
+		if (lastCommitedChange >= f.lastModified())
+		{
+			return;
+		}
+			
+		byte [] row = new byte [recordSize];
+		if ( !eof )
+		{
+			long lastRow;
+			Long lastRowObject = lastRows.get(file);
+			if (lastRowObject == null)
+				lastRow = 0;
+			else
+				lastRow = lastRowObject.longValue();
+			FileInputStream input = new FileInputStream(f);
+			for (int i = 0; i < lastRow; i++)
+			{
+				input.read(row);
+			}
+			while (changes.size() < 100)
+			{
+				if (input.read(row) < 0)
+				{
+					eof = true;
+					lastRow = 0;
+					break;
+				} else {
+					ExtensibleObject eo = readLine(eom, lastRow+1, row);
+					AuthoritativeChange ch = vom.parseAuthoritativeChange(eo); 
+					if (ch != null && ch.getUser() != null)
+					{
+						changes.add(ch);
+						if (ch.getUser().getCodi() != null)
+						{
+							loadedUsers.add (ch.getUser().getCodi());
+						}
+					}
+					lastRow ++;
+				}
+			}
+			lastRows.put(file, lastRow);
+			input.close();
+		}
+		
+		if (eof && !end) {
+			copyFile (f, new File ( file+"."+lf));
 		}
 	}
 		
@@ -291,11 +255,27 @@ public class ColumnsAgent extends Agent implements AuthoritativeIdentitySource2,
 	}
 
 	public String getNextChange() throws InternalErrorException {
-		return ""+loadingFile;
+		long last = 0;
+		for (Long l: loadingFiles.values())
+		{
+			if ( l.longValue() > last)
+				last = l.longValue();
+		}
+		return ""+last;
 	}
 
 	public boolean hasMoreData() throws InternalErrorException {
 		return !end;
+	}
+
+	public ExtensibleObject getNativeObject(SoffidObjectType type, String object1, String object2)
+			throws RemoteException, InternalErrorException {
+		return null;
+	}
+
+	public ExtensibleObject getSoffidObject(SoffidObjectType type, String object1, String object2)
+			throws RemoteException, InternalErrorException {
+		return null;
 	}
 
 

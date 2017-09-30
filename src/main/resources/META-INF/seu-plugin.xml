@@ -14,6 +14,7 @@
 	<agent>
 		<name>CSV file test agent</name>
 		<javaClass>es.caib.seycon.agent.CSVAgent</javaClass>
+		<javaClassV2>es.caib.seycon.agent.CSVAgent2</javaClassV2>
 		<userInterface>CsvAgent.zul</userInterface>
 		<enableAccessControl>N</enableAccessControl>
 		<authoritativeSource>true</authoritativeSource>
@@ -28,6 +29,7 @@
 	<agent>
 		<name>Customizable CSV file</name>
 		<javaClass>com.soffid.iam.sync.agent.CSVAgent</javaClass>
+		<javaClassV2>com.soffid.iam.sync.agent.CSVAgent2</javaClassV2>
 		<userInterface>CustomCsvAgent.zul</userInterface>
 		<authoritativeSource>true</authoritativeSource>
 		<enableAccessControl>false</enableAccessControl>
@@ -53,8 +55,9 @@
 
 	</agent>
 	<agent>
-		<name>Customizable fixed-columns file</name>
+		<name>Customizable fixed-columns file v2.0</name>
 		<javaClass>com.soffid.iam.sync.agent.ColumnsAgent</javaClass>
+		<javaClassV2>com.soffid.iam.sync.agent.ColumnsAgent2</javaClassV2>
 		<userInterface>ColumnsAgent.zul</userInterface>
 		<authoritativeSource>true</authoritativeSource>
 		<enableAccessControl>false</enableAccessControl>

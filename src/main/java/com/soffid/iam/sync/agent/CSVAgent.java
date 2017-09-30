@@ -34,7 +34,7 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 		AuthoritativeIdentitySource, ExtensibleObjectMgr {
 	boolean debugEnabled = true;
 	ObjectTranslator objectTranslator = null;
-	private Collection<ExtensibleObjectMapping> objectMappings;
+	protected Collection<ExtensibleObjectMapping> objectMappings;
 
 	public CSVAgent() throws RemoteException {
 	}
@@ -165,7 +165,7 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 		return changes;
 	}
 
-	private AuthoritativeChange readUser(List<AuthoritativeChange> changes,
+	protected AuthoritativeChange readUser(List<AuthoritativeChange> changes,
 			ValueObjectMapper vom, ExtensibleObjectMapping eom, CSVFile prop,
 			CSVFile backProp, String account) throws InternalErrorException {
 		Map<String, Object> identity = prop.getUserData(account);
@@ -203,7 +203,7 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 		return null;
 	}
 
-	private AuthoritativeChange readAuthoritativeChange(List<AuthoritativeChange> changes,
+	protected AuthoritativeChange readAuthoritativeChange(List<AuthoritativeChange> changes,
 			ValueObjectMapper vom, ExtensibleObjectMapping eom, CSVFile prop,
 			String account) throws InternalErrorException {
 		Map<String, Object> identity = prop.getUserData(account);
@@ -489,6 +489,16 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 	public List<String> getRolesList() throws RemoteException,
 			InternalErrorException {
 		return new LinkedList<String>();
+	}
+
+	public ExtensibleObject getNativeObject(SoffidObjectType type, String object1, String object2)
+			throws RemoteException, InternalErrorException {
+		return null;
+	}
+
+	public ExtensibleObject getSoffidObject(SoffidObjectType type, String object1, String object2)
+			throws RemoteException, InternalErrorException {
+		return null;
 	}
 
 

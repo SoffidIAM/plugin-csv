@@ -35,7 +35,6 @@ import es.caib.seycon.ng.exception.InternalErrorException;
 import es.caib.seycon.ng.exception.UnknownGroupException;
 import es.caib.seycon.ng.comu.Password;
 import es.caib.seycon.util.TimedProcess;
-import es.caib.seycon.UnknownUserException;
 import es.caib.seycon.ng.comu.ControlAcces;
 import es.caib.seycon.ng.comu.Grup;
 import es.caib.seycon.ng.comu.Rol;
@@ -54,11 +53,8 @@ import es.caib.seycon.ng.sync.intf.AuthoritativeChange;
 import es.caib.seycon.ng.sync.intf.AuthoritativeChangeIdentifier;
 import es.caib.seycon.ng.sync.intf.AuthoritativeIdentitySource;
 import es.caib.seycon.ng.sync.intf.LogEntry;
-import es.caib.seycon.ng.sync.intf.RoleInfo;
 import es.caib.seycon.ng.sync.intf.RoleMgr;
-import es.caib.seycon.ng.sync.intf.UserInfo;
 import es.caib.seycon.ng.sync.intf.UserMgr;
-import es.caib.seycon.db.LogInfoConnection;
 
 /**
  * Agent to retrieve information from peopleosft
