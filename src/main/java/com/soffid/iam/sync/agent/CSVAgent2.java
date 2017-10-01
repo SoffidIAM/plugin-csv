@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.soffid.iam.api.CustomObject;
+import com.soffid.iam.sync.engine.InterfaceWrapper;
 import com.soffid.iam.sync.intf.CustomObjectMgr;
 
 import es.caib.seycon.ng.comu.Account;
@@ -29,11 +30,35 @@ public class CSVAgent2 extends CSVAgent implements CustomObjectMgr {
 	}
 
 	public void updateCustomObject(CustomObject obj) throws RemoteException, InternalErrorException {
-		
+		ExtensibleObject soffidObject = new es.caib.seycon.ng.sync.engine.extobj.CustomExtensibleObject(obj, getServer());
+		for (ExtensibleObjectMapping objectMapping : objectMappings) {
+			if (objectMapping.appliesToSoffidObject(soffidObject)) 
+			{
+				ExtensibleObject systemObject = objectTranslator
+						.generateObject(soffidObject, objectMapping);
+				try {
+					updateObject(systemObject);
+				} catch (IOException e) {
+					throw new InternalErrorException("Error updating CSV file", e);
+				}
+			}
+		}		
 	}
 
 	public void removeCustomObject(CustomObject obj) throws RemoteException, InternalErrorException {
-		
+		ExtensibleObject soffidObject = new es.caib.seycon.ng.sync.engine.extobj.CustomExtensibleObject(obj, getServer());
+		for (ExtensibleObjectMapping objectMapping : objectMappings) {
+			if (objectMapping.appliesToSoffidObject(soffidObject)) 
+			{
+				ExtensibleObject systemObject = objectTranslator
+						.generateObject(soffidObject, objectMapping);
+				try {
+					removeObject(systemObject);
+				} catch (IOException e) {
+					throw new InternalErrorException("Error updating CSV file", e);
+				}
+			}
+		}		
 	}
 
 	public Collection<AuthoritativeChange> getChanges()

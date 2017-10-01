@@ -51,7 +51,7 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 
 	}
 
-	private void updateObject(ExtensibleObject systemObject) throws InternalErrorException, IOException {
+	protected void updateObject(ExtensibleObject systemObject) throws InternalErrorException, IOException {
 		ValueObjectMapper vom = new ValueObjectMapper();
 		for ( ExtensibleObjectMapping eom: objectMappings)
 		{
@@ -74,7 +74,7 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 		}
 	}
 
-	private void removeObject(ExtensibleObject systemObject) throws InternalErrorException, IOException {
+	protected void removeObject(ExtensibleObject systemObject) throws InternalErrorException, IOException {
 		ValueObjectMapper vom = new ValueObjectMapper();
 		for ( ExtensibleObjectMapping eom: objectMappings)
 		{
