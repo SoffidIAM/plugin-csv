@@ -203,9 +203,11 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 		return null;
 	}
 
+	
 	protected AuthoritativeChange readAuthoritativeChange(List<AuthoritativeChange> changes,
 			ValueObjectMapper vom, ExtensibleObjectMapping eom, CSVFile prop,
 			String account) throws InternalErrorException {
+		
 		Map<String, Object> identity = prop.getUserData(account);
 		ExtensibleObject eo = new ExtensibleObject();
 		eo.setObjectType(eom.getSystemObject());
@@ -316,6 +318,44 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 
 	public boolean validateUserPassword(String accountName, Password password)
 			throws RemoteException, InternalErrorException {
+		ValueObjectMapper vom = new ValueObjectMapper();
+		Account acc = getServer().getAccountInfo(accountName, getCodi());
+		ExtensibleObject sample = new AccountExtensibleObject(acc, getServer());
+		// For each mapping
+		for (ExtensibleObjectMapping objectMapping : objectMappings) {
+			if (objectMapping.getSoffidObject().equals(
+					SoffidObjectType.OBJECT_ACCOUNT)) {
+				
+				ExtensibleObject translatedSample = objectTranslator
+						.generateObject(sample, objectMapping);
+
+				String key = objectMapping.getProperties().get("key");
+				String file = objectMapping.getProperties().get("file");
+				if (debugEnabled)
+				{
+					log.info("Getting account info for "+accountName);
+				}
+				String keyValue = vom.toSingleString(
+						objectTranslator
+						.generateAttribute(key, sample,  objectMapping));
+				if (debugEnabled)
+				{
+					log.info("Key column: "+keyValue);
+				}
+				CSVFile prop = CSVFile.load(key, file);
+				Map<String, Object> identity = prop.getUserData(keyValue);
+
+				ExtensibleObject eo = new ExtensibleObject();
+				eo.setObjectType(objectMapping.getSystemObject());
+				eo.putAll(identity);
+
+				String cvsPassword = (String) objectTranslator.parseInputAttribute("password", eo, objectMapping);
+				if (cvsPassword != null && cvsPassword.equals(password.getPassword()))
+					return true;
+
+			}
+		}
+
 		return false;
 	}
 

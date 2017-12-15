@@ -61,6 +61,7 @@ public class CSVAgent2 extends CSVAgent implements CustomObjectMgr {
 		}		
 	}
 
+	int position = 0;
 	public Collection<AuthoritativeChange> getChanges()
 			throws InternalErrorException {
 		List<AuthoritativeChange> changes = new LinkedList<AuthoritativeChange>();
@@ -189,6 +190,7 @@ public class CSVAgent2 extends CSVAgent implements CustomObjectMgr {
 		return null;
 	}
 
+	@Override
 	public ExtensibleObject getNativeObject(SoffidObjectType type, String object1, String object2)
 			throws RemoteException, InternalErrorException {
 		ValueObjectMapper vom = new ValueObjectMapper();
@@ -218,6 +220,7 @@ public class CSVAgent2 extends CSVAgent implements CustomObjectMgr {
 		return null;
 	}
 
+	@Override
 	public ExtensibleObject getSoffidObject(SoffidObjectType type, String object1, String object2)
 			throws RemoteException, InternalErrorException {
 		ValueObjectMapper vom = new ValueObjectMapper();
