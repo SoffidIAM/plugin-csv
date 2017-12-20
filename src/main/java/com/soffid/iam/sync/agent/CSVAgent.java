@@ -16,6 +16,7 @@ import es.caib.seycon.ng.comu.RolGrant;
 import es.caib.seycon.ng.comu.SoffidObjectType;
 import es.caib.seycon.ng.comu.Usuari;
 import es.caib.seycon.ng.exception.InternalErrorException;
+import es.caib.seycon.ng.exception.UnknownUserException;
 import es.caib.seycon.ng.sync.agent.Agent;
 import es.caib.seycon.ng.sync.engine.extobj.AccountExtensibleObject;
 import es.caib.seycon.ng.sync.engine.extobj.ObjectTranslator;
@@ -320,15 +321,22 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 			throws RemoteException, InternalErrorException {
 		ValueObjectMapper vom = new ValueObjectMapper();
 		Account acc = getServer().getAccountInfo(accountName, getCodi());
-		ExtensibleObject sample = new AccountExtensibleObject(acc, getServer());
+		Usuari u = null;
+		try {
+			u = getServer().getUserInfo(accountName, getCodi());
+		} catch (UnknownUserException e) {
+		}
+		ExtensibleObject sample = u == null ?
+				new AccountExtensibleObject(acc, getServer()) :
+				new UserExtensibleObject(acc, u, getServer());
 		// For each mapping
 		for (ExtensibleObjectMapping objectMapping : objectMappings) {
 			if (objectMapping.getSoffidObject().equals(
-					SoffidObjectType.OBJECT_ACCOUNT)) {
+					SoffidObjectType.OBJECT_ACCOUNT) ||
+					objectMapping.getSoffidObject().equals(
+							SoffidObjectType.OBJECT_USER)) 
+			{
 				
-				ExtensibleObject translatedSample = objectTranslator
-						.generateObject(sample, objectMapping);
-
 				String key = objectMapping.getProperties().get("key");
 				String file = objectMapping.getProperties().get("file");
 				if (debugEnabled)

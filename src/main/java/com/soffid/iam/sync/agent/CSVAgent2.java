@@ -77,7 +77,7 @@ public class CSVAgent2 extends CSVAgent implements CustomObjectMgr {
 				{
 					log.info("Getting authoritative users");
 				}
-				CSVFile prop = CSVFile.load(key, file);
+				CSVFile prop = CSVFile.load(key, file); 
 				for (String account: prop.getAccounts())
 				{
 					readAuthoritativeChange(changes, vom, eom, prop, account);
