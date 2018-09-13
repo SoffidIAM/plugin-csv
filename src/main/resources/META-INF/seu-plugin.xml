@@ -20,13 +20,6 @@
 		<authoritativeSource>true</authoritativeSource>
 	</agent>	
 	<agent>
-		<name>Dummy password agent</name>
-		<javaClass>com.soffid.iam.sync.agent.DummyPasswordAgent</javaClass>
-		<userInterface>DummyPasswordAgent.zul</userInterface>
-		<enableAccessControl>N</enableAccessControl>
-		<authoritativeSource>false</authoritativeSource>
-	</agent>	
-	<agent>
 		<name>Customizable CSV file</name>
 		<javaClass>com.soffid.iam.sync.agent.CSVAgent</javaClass>
 		<javaClassV2>com.soffid.iam.sync.agent.CSVAgent2</javaClassV2>

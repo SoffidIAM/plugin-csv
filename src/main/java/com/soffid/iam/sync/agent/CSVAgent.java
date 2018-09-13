@@ -5,6 +5,7 @@ import java.rmi.RemoteException;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import es.caib.seycon.ng.exception.UnknownUserException;
 import es.caib.seycon.ng.sync.agent.Agent;
 import es.caib.seycon.ng.sync.engine.extobj.AccountExtensibleObject;
 import es.caib.seycon.ng.sync.engine.extobj.ObjectTranslator;
+import es.caib.seycon.ng.sync.engine.extobj.RoleExtensibleObject;
 import es.caib.seycon.ng.sync.engine.extobj.UserExtensibleObject;
 import es.caib.seycon.ng.sync.engine.extobj.ValueObjectMapper;
 import es.caib.seycon.ng.sync.intf.AuthoritativeChange;
@@ -186,7 +188,7 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 		{
 			if (debugEnabled)
 			{
-				debugObject("Got soffid identity", eo, "   ");
+				debugObject("Got soffid identity", input, "   ");
 			}
 			Usuari usuari = vom.parseUsuari(input);
 			if (usuari != null)
@@ -222,7 +224,7 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 		{
 			if (debugEnabled)
 			{
-				debugObject("Got soffid identity", eo, "   ");
+				debugObject("Got soffid identity", input, "   ");
 			}
 			AuthoritativeChange change = vom.parseAuthoritativeChange(input);
 			if (change != null)
@@ -372,7 +374,7 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 			if (indent == null)
 				indent = "";
 			if (msg != null)
-				log.info(indent + msg);
+				log.info(msg);
 			for (String attribute : obj.keySet()) {
 				Object subObj = obj.get(attribute);
 				if (subObj == null) {
@@ -454,30 +456,34 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 				{
 					log.info("Key column: "+keyValue);
 				}
-				CSVFile prop = CSVFile.load(key, file);
+				CSVFile prop = files.get(objectMapping.getSystemObject());
 				Map<String, Object> identity = prop.getUserData(keyValue);
-
-				ExtensibleObject eo = new ExtensibleObject();
-				eo.setObjectType(objectMapping.getSystemObject());
-				eo.putAll(identity);
-				if (debugEnabled)
+				if (identity != null)
 				{
-					debugObject("Got raw identity", eo, "");
-				}
-				ExtensibleObject input = objectTranslator.parseInputObject(eo, objectMapping);
-				if (input != null)
-				{
+	
+					ExtensibleObject eo = new ExtensibleObject();
+					eo.setObjectType(objectMapping.getSystemObject());
+					eo.putAll(identity);
 					if (debugEnabled)
 					{
-						debugObject("Got soffid identity", eo, "");
+						debugObject("Got raw identity", eo, "");
 					}
-					Account account = vom.parseAccount(input);
-					if (account != null)
-						return account;
+					ExtensibleObject input = objectTranslator.parseInputObject(eo, objectMapping);
+					if (input != null)
+					{
+						if (debugEnabled)
+						{
+							debugObject("Got soffid identity", input, "");
+						}
+						Account account = vom.parseAccount(input);
+						if (account != null)
+							return account;
+					}
 				}
 			}
 		}
 
+		log.info("Cannot retrieve information for account "+userAccount);
 		return null;
 	}
 
@@ -497,6 +503,7 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 				String key = objectMapping.getProperties().get("key");
 				String file = objectMapping.getProperties().get("file");
 				CSVFile prop = CSVFile.load(key, file);
+				files.put(objectMapping.getSystemObject(), prop);
 				for (String keyValue: prop.getAccounts())
 				{
 					Map<String, Object> identity = prop.getUserData(keyValue);
@@ -526,17 +533,154 @@ public class CSVAgent extends Agent implements UserMgr, ReconcileMgr2,
 
 	public List<RolGrant> getAccountGrants(String arg0) throws RemoteException,
 			InternalErrorException {
-		return new LinkedList<RolGrant>();
+		List<RolGrant> grants = new LinkedList<RolGrant>();
+
+		ValueObjectMapper vom = new ValueObjectMapper();
+		log.info("Getting grants for "+arg0);
+		// For each mapping
+		for (ExtensibleObjectMapping objectMapping : objectMappings) {
+			if (objectMapping.getSoffidObject().equals(SoffidObjectType.OBJECT_GRANT) ||
+					objectMapping.getSoffidObject().equals(SoffidObjectType.OBJECT_ALL_GRANTED_ROLES) ||
+					objectMapping.getSoffidObject().equals(SoffidObjectType.OBJECT_GRANTED_ROLE)) {
+				
+				CSVFile props = files.get(objectMapping.getSystemObject());
+				if (props == null)
+				{
+					String key = objectMapping.getProperties().get("key");
+					String file = objectMapping.getProperties().get("file");
+					props = CSVFile.load(key, file);
+					files.put(objectMapping.getSystemObject(), props);
+				}
+				for (String tag: props.getAccounts())
+				{
+					Map<String, Object> identity = props.getUserData(tag);
+					if (identity == null)
+					{
+						log.info("Cannot retrieve information for account "+tag);
+						return null;
+					}
+
+					ExtensibleObject eo = new ExtensibleObject();
+					eo.setObjectType(objectMapping.getSystemObject());
+					eo.putAll(identity);
+					ExtensibleObject input = objectTranslator.parseInputObject(eo, objectMapping);
+					if (input != null)
+					{
+						RolGrant grant = vom.parseGrant(input);
+						if (grant != null && grant.getOwnerAccountName() != null && grant.getOwnerAccountName().equals(arg0))
+						{
+							grants.add(grant);
+							log.info("Got grants "+grant.toString());
+						}
+					}
+	
+				}
+			}
+		}
+
+		return grants;
 	}
 
-	public Rol getRoleFullInfo(String arg0) throws RemoteException,
+	public Rol getRoleFullInfo(String roleName) throws RemoteException,
 			InternalErrorException {
+		ValueObjectMapper vom = new ValueObjectMapper();
+		Rol acc = new Rol();
+		acc.setNom(roleName);
+		acc.setBaseDeDades(getCodi());
+		ExtensibleObject sample = new RoleExtensibleObject(acc, getServer());
+		// For each mapping
+		for (ExtensibleObjectMapping objectMapping : objectMappings) {
+			if (objectMapping.getSoffidObject().equals(
+					SoffidObjectType.OBJECT_ROLE)) {
+				
+				CSVFile prop = files.get(objectMapping.getSystemObject());
+				String key = objectMapping.getProperties().get("key");
+				if (debugEnabled)
+				{
+					log.info("Getting role info for "+roleName);
+				}
+				String keyValue = vom.toSingleString(
+						objectTranslator
+						.generateAttribute(key, sample,  objectMapping));
+				if (debugEnabled)
+				{
+					log.info("Key column: "+keyValue);
+				}
+				Map<String, Object> identity = prop.getUserData(keyValue);
+				if (identity == null)
+				{
+					log.info("Cannot retrieve information for role "+keyValue);
+				}
+				else
+				{
+	
+					ExtensibleObject eo = new ExtensibleObject();
+					eo.setObjectType(objectMapping.getSystemObject());
+					eo.putAll(identity);
+					if (debugEnabled)
+					{
+						debugObject("Got raw identity", eo, "");
+					}
+					ExtensibleObject input = objectTranslator.parseInputObject(eo, objectMapping);
+					if (input != null)
+					{
+						if (debugEnabled)
+						{
+							debugObject("Got soffid identity", input, "");
+						}
+						Rol account = vom.parseRol(input);
+						if (account != null)
+							return account;
+					}
+				}
+			}
+		}
+
 		return null;
 	}
 
+	HashMap<String, CSVFile> files = new HashMap<String, CSVFile>();
 	public List<String> getRolesList() throws RemoteException,
 			InternalErrorException {
-		return new LinkedList<String>();
+		files.clear();
+		ValueObjectMapper vom = new ValueObjectMapper();
+		List<String> accountNames = new LinkedList<String>();
+		if (debugEnabled)
+			log.info ("Getting roles list");
+		// For each mapping
+		for (ExtensibleObjectMapping objectMapping : objectMappings) {
+			if (objectMapping.getSoffidObject().equals(
+					SoffidObjectType.OBJECT_ROLE)) {
+				
+				String key = objectMapping.getProperties().get("key");
+				String file = objectMapping.getProperties().get("file");
+				CSVFile prop = CSVFile.load(key, file);
+				files.put(objectMapping.getSystemObject(), prop);
+				for (String keyValue: prop.getAccounts())
+				{
+					Map<String, Object> identity = prop.getUserData(keyValue);
+					ExtensibleObject eo = new ExtensibleObject();
+					eo.setObjectType(objectMapping.getSystemObject());
+					eo.putAll(identity);
+					
+					if (debugEnabled)
+					{
+						debugObject("Got raw identity", eo, "");
+					}
+					String accountName = vom.toSingleString(
+							objectTranslator
+							.parseInputAttribute("name", eo, objectMapping));
+					if (debugEnabled)
+					{
+						log.info ("Role name: "+accountName);
+					}
+					if (accountName != null)
+						accountNames.add(accountName);
+				}
+			}
+		}
+
+		return accountNames;
 	}
 
 	public ExtensibleObject getNativeObject(SoffidObjectType type, String object1, String object2)

@@ -10,14 +10,11 @@ import java.util.List;
 import java.util.Map;
 
 import com.soffid.iam.api.CustomObject;
-import com.soffid.iam.sync.engine.InterfaceWrapper;
 import com.soffid.iam.sync.intf.CustomObjectMgr;
 
-import es.caib.seycon.ng.comu.Account;
 import es.caib.seycon.ng.comu.Grup;
 import es.caib.seycon.ng.comu.SoffidObjectType;
 import es.caib.seycon.ng.exception.InternalErrorException;
-import es.caib.seycon.ng.sync.engine.extobj.AccountExtensibleObject;
 import es.caib.seycon.ng.sync.engine.extobj.ValueObjectMapper;
 import es.caib.seycon.ng.sync.intf.AuthoritativeChange;
 import es.caib.seycon.ng.sync.intf.AuthoritativeChangeIdentifier;
@@ -205,6 +202,10 @@ public class CSVAgent2 extends CSVAgent implements CustomObjectMgr {
 						.generateAttribute(key, sample,  objectMapping));
 				CSVFile prop = CSVFile.load(key, file);
 				Map<String, Object> identity = prop.getUserData(keyValue);
+				if (identity == null)
+				{
+					throw new InternalErrorException("Unable to find object "+keyValue);
+				}
 
 				ExtensibleObject eo = new ExtensibleObject();
 				eo.setObjectType(objectMapping.getSystemObject());

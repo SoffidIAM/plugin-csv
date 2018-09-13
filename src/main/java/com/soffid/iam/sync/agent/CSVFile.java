@@ -31,16 +31,17 @@ public class CSVFile {
 		file.props = new HashMap<String,Map<String,Object>>();
 		try
 		{
-			CSVReader reader = new CSVReader(new FileReader(fileName));
+			CSVReader reader = new CSVReader(new FileReader(fileName), ',', '\"', '\0', 0);
 			file.columns = reader.readNext();
 			if (file.columns != null)
 			{
-				int userNameColumn = 0;
+				int userNameColumn = -1;
 				for (int i = 0; i < file.columns.length; i++)
 					if (key.equals(file.columns[i]))
 					{
 						userNameColumn = i;
 					}
+				int row = 1;
 				for (String[] values = reader.readNext();
 						values != null;
 						values = reader.readNext())
@@ -50,7 +51,7 @@ public class CSVFile {
 					{
 						map.put(file.columns[i], values[i]);
 					}
-					String keyValue = values[userNameColumn];
+					String keyValue = userNameColumn >= 0 ? values[userNameColumn]: Integer.toString(row++);
 					file.props.put(keyValue, map);
 				}
 			}
