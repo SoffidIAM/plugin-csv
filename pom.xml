@@ -46,6 +46,17 @@
 					</execution>
 				</executions>
 			</plugin>
+	    <plugin>
+	      <artifactId>maven-release-plugin</artifactId>
+	      <version>2.4.2</version>
+	      <dependencies>
+	        <dependency>
+	          <groupId>org.apache.maven.scm</groupId>
+	          <artifactId>maven-scm-provider-gitexe</artifactId>
+	          <version>1.8.1</version>
+	        </dependency>
+	       </dependencies>
+	      </plugin>
 		</plugins>
 	</build>
 	<dependencies>
@@ -67,7 +78,23 @@
 		</dependency>
 	</dependencies>
 	<properties>
-		<maven.compile.source>5</maven.compile.source>
-		<maven.compile.target>5</maven.compile.target>
+		<maven.compile.source>8</maven.compile.source>
+		<maven.compile.target>8</maven.compile.target>
 	</properties>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>soffid-open</id>
+			<url>https://download.soffid.com/maven</url>
+		</pluginRepository>
+	</pluginRepositories>
+	<repositories>
+		<repository>
+			<id>central</id>
+			<url>http://repo1.maven.org/maven2</url>
+		</repository>
+		<repository>
+			<id>soffid-open</id>
+			<url>https://download.soffid.com/maven</url>
+		</repository>
+	</repositories>
 </project>
